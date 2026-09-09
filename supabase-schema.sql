@@ -1,7 +1,7 @@
 -- ============================================================
 -- Market Biru - Koperasi SMKN 11 Bandung
--- Schema untuk Supabase (PostgreSQL)
--- Jalankan di: Supabase Dashboard > SQL Editor
+-- Schema & Setup Lengkap untuk Supabase (PostgreSQL)
+-- Jalankan SELURUH isi file ini di: Supabase Dashboard > SQL Editor
 -- ============================================================
 
 -- 1. Tabel Users
@@ -78,12 +78,18 @@ CREATE TABLE IF NOT EXISTS order_items (
   subtotal NUMERIC(12,2) NOT NULL
 );
 
--- Nonaktifkan RLS agar API Next.js dapat membaca & menulis data dengan mudah
-ALTER TABLE IF EXISTS users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS orders DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS order_items DISABLE ROW LEVEL SECURITY;
+-- ============================================================
+-- PENTING: Matikan RLS agar API Next.js / Vercel dapat membaca & menulis data
+-- ============================================================
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE orders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE order_items DISABLE ROW LEVEL SECURITY;
+
+-- Berikan izin penuh ke anon & authenticated
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- ============================================================
 -- SEED: Akun Resmi Petugas & Siswa SMKN 11 Bandung
@@ -121,7 +127,7 @@ ON CONFLICT (id) DO UPDATE SET
   nisn = EXCLUDED.nisn,
   whatsapp = EXCLUDED.whatsapp;
 
--- Fix sequence setelah bulk insert
+-- Fix sequence
 SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1));
 
 -- ============================================================

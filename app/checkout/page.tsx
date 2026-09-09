@@ -41,21 +41,35 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Fetch logged-in user profile
+  // Fetch logged-in user profile with localStorage fallback
   useEffect(() => {
-    fetch('/api/auth/me')
+    // 1. Instant check from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const localUserStr = localStorage.getItem('market_biru_user');
+        if (localUserStr) {
+          const localUser: AuthUser = JSON.parse(localUserStr);
+          setStudentUser(localUser);
+          if (localUser.name) setStudentName(localUser.name);
+          if (localUser.student_class) setStudentClass(localUser.student_class);
+          if (localUser.whatsapp) setWhatsappNumber(localUser.whatsapp);
+        }
+      } catch (e) {}
+    }
+
+    // 2. Verified check from server
+    fetch('/api/auth/me', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.authenticated && data.user) {
           const u: AuthUser = data.user;
           setStudentUser(u);
-          if (u.role === 'siswa') {
-            if (u.name) setStudentName(u.name);
-            if (u.student_class) {
-              setStudentClass(u.student_class);
-            }
-            if (u.whatsapp) setWhatsappNumber(u.whatsapp);
-          }
+          if (u.name) setStudentName(u.name);
+          if (u.student_class) setStudentClass(u.student_class);
+          if (u.whatsapp) setWhatsappNumber(u.whatsapp);
+          try {
+            localStorage.setItem('market_biru_user', JSON.stringify(u));
+          } catch (e) {}
         }
       })
       .catch(() => {})
@@ -88,8 +102,8 @@ export default function CheckoutPage() {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!studentUser) {
-      setErrorMsg('Anda harus masuk dengan akun Siswa SMKN 11 terlebih dahulu untuk membuat pesanan.');
+    if (!studentUser && !studentName.trim()) {
+      setErrorMsg('Anda harus masuk dengan akun Siswa SMKN 11 atau lengkapi identitas siswa terlebih dahulu.');
       return;
     }
 

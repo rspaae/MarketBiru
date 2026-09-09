@@ -66,6 +66,12 @@ function StudentAuthContent() {
         return;
       }
 
+      if (typeof window !== 'undefined' && data.user) {
+        try {
+          localStorage.setItem('market_biru_user', JSON.stringify(data.user));
+        } catch (e) {}
+      }
+
       if (data.user.role === 'admin' || data.user.role === 'kasir' || data.user.role === 'petugas') {
         setSuccessMsg(`Login Petugas (${data.user.role.toUpperCase()}) Berhasil! Mengalihkan...`);
         setTimeout(() => {
