@@ -1,9 +1,12 @@
-import { NextResponse } from 'next/server';
-import { testConnection } from '@/lib/db';
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 export async function GET() {
-  const result = await testConnection();
-  return NextResponse.json(result, {
-    status: result.connected ? 200 : 500,
-  });
+  try {
+    const { data, error } = await supabase.from("products").select("count").limit(1);
+    if (error) throw error;
+    return NextResponse.json({ connected: true, message: "Koneksi Supabase berhasil!", source: "supabase" });
+  } catch (err: any) {
+    return NextResponse.json({ connected: false, message: err.message || "Gagal koneksi Supabase." }, { status: 500 });
+  }
 }

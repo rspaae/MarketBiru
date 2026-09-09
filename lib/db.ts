@@ -16,6 +16,7 @@ const accessConfig: PoolOptions = {
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
 };
 
 // Singleton pool to avoid multiple pool instances in Next.js hot reload

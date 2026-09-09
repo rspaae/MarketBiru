@@ -1,123 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
-import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+import { INITIAL_CATEGORIES } from "@/lib/data";
 
-// PUT /api/products/[id] - Update produk
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
-
   try {
     const body = await req.json();
-    const {
-      name,
-      categoryId,
-      price,
-      stock,
-      unit,
-      description,
-      image,
-      isActive,
-    } = body;
+    const { name, categoryId, price, stock, unit, description, image, isActive } = body;
 
-    const fields: string[] = [];
-    const values: any[] = [];
+    const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+    if (name !== undefined) updates.name = name.trim();
+    if (categoryId !== undefined) updates.category_id = categoryId;
+    if (price !== undefined) updates.price = Number(price);
+    if (stock !== undefined) updates.stock = Number(stock);
+    if (unit !== undefined) updates.unit = unit;
+    if (description !== undefined) updates.description = description;
+    if (image !== undefined) updates.image = image;
+    if (isActive !== undefined) updates.is_active = isActive;
 
-    if (name !== undefined) {
-      fields.push('name = ?');
-      values.push(name.trim());
-    }
-    if (categoryId !== undefined) {
-      fields.push('category_id = ?');
-      values.push(categoryId);
-    }
-    if (price !== undefined) {
-      fields.push('price = ?');
-      values.push(Number(price));
-    }
-    if (stock !== undefined) {
-      fields.push('stock = ?');
-      values.push(Number(stock));
-    }
-    if (unit !== undefined) {
-      fields.push('unit = ?');
-      values.push(unit);
-    }
-    if (description !== undefined) {
-      fields.push('description = ?');
-      values.push(description);
-    }
-    if (image !== undefined) {
-      fields.push('image = ?');
-      values.push(image);
-    }
-    if (isActive !== undefined) {
-      fields.push('is_active = ?');
-      values.push(isActive ? 1 : 0);
-    }
+    const { data, error } = await supabase
+      .from("products")
+      .update(updates)
+      .eq("id", id)
+      .select("*, categories(name)")
+      .single();
 
-    if (fields.length === 0) {
-      return NextResponse.json({ error: 'Tidak ada data yang diubah' }, { status: 400 });
-    }
+    if (error) throw error;
+    if (!data) return NextResponse.json({ error: "Produk tidak ditemukan" }, { status: 404 });
 
-    fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(id);
-
-    await query<ResultSetHeader>(
-      `UPDATE products SET ${fields.join(', ')} WHERE id = ?`,
-      values
-    );
-
-    // Fetch updated
-    const rows = await query<RowDataPacket[]>(
-      `SELECT p.*, c.name as category_name 
-       FROM products p 
-       LEFT JOIN categories c ON c.id = p.category_id 
-       WHERE p.id = ? LIMIT 1`,
-      [id]
-    );
-
-    if (!rows.length) {
-      return NextResponse.json({ error: 'Produk tidak ditemukan' }, { status: 404 });
-    }
-
-    const r = rows[0];
     return NextResponse.json({
       success: true,
       product: {
-        id: r.id,
-        categoryId: r.category_id,
-        categoryName: r.category_name || '',
-        name: r.name,
-        slug: r.slug,
-        description: r.description || '',
-        price: Number(r.price),
-        stock: Number(r.stock),
-        image: r.image || '',
-        unit: r.unit || 'pcs',
-        isActive: Boolean(r.is_active),
+        id: data.id,
+        categoryId: data.category_id,
+        categoryName: (data as any).categories?.name || "",
+        name: data.name,
+        slug: data.slug,
+        description: data.description || "",
+        price: Number(data.price),
+        stock: Number(data.stock),
+        image: data.image || "",
+        unit: data.unit || "pcs",
+        isActive: Boolean(data.is_active),
       },
     });
   } catch (err: any) {
-    console.error('Products PUT error:', err);
-    return NextResponse.json({ error: err.message || 'Gagal update produk' }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Gagal update produk" }, { status: 500 });
   }
 }
 
-// DELETE /api/products/[id] - Hapus produk
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
-
   try {
-    await query<ResultSetHeader>('DELETE FROM products WHERE id = ?', [id]);
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('Products DELETE error:', err);
-    return NextResponse.json({ error: err.message || 'Gagal menghapus produk' }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Gagal menghapus produk" }, { status: 500 });
   }
 }
