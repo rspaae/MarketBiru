@@ -16,18 +16,77 @@ import {
   ShoppingBag, 
   HelpCircle,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Sparkles as SparkleIcon
 } from 'lucide-react';
 import { useStore, formatRupiah } from '@/lib/store';
-import { OrderStatus } from '@/lib/types';
+import { Order, OrderItem, OrderStatus } from '@/lib/types';
 
 export default function NotaPage() {
   const params = useParams();
-  const { findOrderByCode, isHydrated } = useStore();
+  const { findOrderByCode, isHydrated, updateOrderStatus } = useStore();
   const code = params.code as string;
   const [copied, setCopied] = useState(false);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [previousStatus, setPreviousStatus] = useState<string | null>(null);
 
-  const order = findOrderByCode(code);
+  const fetchLiveOrder = async (isManual = false) => {
+    if (isManual) setIsRefreshing(true);
+    try {
+      const res = await fetch(`/api/orders?code=${encodeURIComponent(code)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.order) {
+          setOrder((prev: any) => {
+            if (prev && prev.status !== 'completed' && data.order.status === 'completed') {
+              try {
+                confetti({
+                  particleCount: 100,
+                  spread: 80,
+                  origin: { y: 0.5 },
+                });
+              } catch (_) {}
+            }
+            return data.order;
+          });
+          // Also sync to local store if available
+          try {
+            updateOrderStatus(data.order.id, data.order.status);
+          } catch (_) {}
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (_) {}
+    finally {
+      if (isManual) setIsRefreshing(false);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    // Initial local cache display for instant render
+    const localOrder = findOrderByCode(code);
+    if (localOrder) {
+      setOrder(localOrder);
+      setLoading(false);
+    }
+
+    // Always fetch fresh data from MySQL immediately
+    fetchLiveOrder();
+
+    // Auto-poll live status from MySQL every 3.5 seconds until completed
+    const interval = setInterval(() => {
+      fetchLiveOrder();
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [code, isHydrated]);
 
   useEffect(() => {
     if (order) {
@@ -43,7 +102,7 @@ export default function NotaPage() {
     }
   }, [order]);
 
-  if (!isHydrated) {
+  if (!isHydrated || loading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center text-slate-400">
         Memuat data nota pesanan...
@@ -140,14 +199,38 @@ export default function NotaPage() {
         </Link>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => fetchLiveOrder(true)}
+            disabled={isRefreshing}
+            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+            title="Perbarui Status Pesanan dari Database"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Cek Status Terbaru</span>
+          </button>
+          <button
             onClick={handlePrint}
-            className="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-xs"
+            className="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5 text-slate-500" />
             <span>Cetak Nota</span>
           </button>
         </div>
       </div>
+
+      {/* Verified Banner when Completed */}
+      {order.status === 'completed' && (
+        <div className="p-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl shadow-lg flex items-center gap-3 animate-in zoom-in-95 no-print">
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-sm">Pesanan Selesai & Berhasil Diserahkan!</h3>
+            <p className="text-xs text-emerald-100">
+              Barang pesanan Anda telah diverifikasi dan diserahkan oleh petugas koperasi. Terima kasih!
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Main Printable Invoice Card */}
       <div id="printable-invoice" className="bg-white rounded-3xl border border-slate-200/80 shadow-md p-6 sm:p-8 space-y-6">
@@ -172,7 +255,17 @@ export default function NotaPage() {
             <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block">
               Status Pesanan
             </span>
-            <div className="mt-1 inline-block">{getStatusBadge(order.status)}</div>
+            <div className="mt-1 flex items-center sm:justify-end gap-1.5">
+              {getStatusBadge(order.status)}
+              <button
+                onClick={() => fetchLiveOrder(true)}
+                disabled={isRefreshing}
+                title="Refresh status pesanan"
+                className="p-1 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition no-print"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -187,10 +280,10 @@ export default function NotaPage() {
             </p>
           </div>
 
-          {/* Render QR Code */}
+          {/* Render QR Code — encode URL penuh agar scanner kasir bisa lookup otomatis */}
           <div className="inline-block p-4 bg-white rounded-2xl shadow-md border border-blue-100">
             <QRCodeSVG
-              value={order.orderCode}
+              value={`${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/admin/scan?code=${order.orderCode}`}
               size={180}
               level="H"
               includeMargin={true}
@@ -251,7 +344,7 @@ export default function NotaPage() {
             Daftar Barang Dipesan
           </h4>
           <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 text-xs">
-            {order.items.map((item) => (
+            {order.items.map((item: OrderItem) => (
               <div key={item.id} className="p-3 flex items-center justify-between gap-4">
                 <div>
                   <p className="font-bold text-slate-800">{item.productName}</p>

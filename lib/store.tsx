@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Category, Product, CartItem, Order, OrderStatus, PaymentStatus } from './types';
 import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_ORDERS } from './data';
+import { AuthUser } from './auth';
 
 interface StoreContextType {
   categories: Category[];
@@ -12,7 +13,12 @@ interface StoreContextType {
   cartCount: number;
   cartTotal: number;
   isHydrated: boolean;
-  addToCart: (product: Product, quantity?: number) => void;
+  currentUser: AuthUser | null;
+  refreshUser: () => Promise<void>;
+  isStudentModalOpen: boolean;
+  setIsStudentModalOpen: (open: boolean) => void;
+  requireStudentAuth: (onSuccess?: () => void) => boolean;
+  addToCart: (product: Product, quantity?: number) => boolean;
   updateCartQty: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
@@ -37,7 +43,83 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Load from LocalStorage on mount
+  // Authentication state
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const pendingAuthCallback = useRef<(() => void) | null>(null);
+
+  const refreshUser = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated && data.user) {
+          setCurrentUser(data.user);
+          localStorage.setItem('smkn11_current_user', JSON.stringify(data.user));
+          return;
+        }
+      }
+      setCurrentUser(null);
+      localStorage.removeItem('smkn11_current_user');
+    } catch {
+      // Keep cached user if offline/fetch error
+      const cached = localStorage.getItem('smkn11_current_user');
+      if (cached) {
+        try {
+          setCurrentUser(JSON.parse(cached));
+        } catch (_) {}
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Initial check from localStorage for zero-lag UI
+    try {
+      const cached = localStorage.getItem('smkn11_current_user');
+      if (cached) {
+        setCurrentUser(JSON.parse(cached));
+      }
+    } catch (_) {}
+
+    refreshUser();
+  }, []);
+
+  /**
+   * Helper to check if student is logged in.
+   * If not, opens the Student Login Modal and saves the pending action to execute on login.
+   */
+  const requireStudentAuth = (onSuccess?: () => void): boolean => {
+    const cachedUser = currentUser || (() => {
+      try {
+        const saved = localStorage.getItem('smkn11_current_user');
+        return saved ? JSON.parse(saved) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    if (cachedUser) {
+      if (!currentUser) setCurrentUser(cachedUser);
+      if (onSuccess) onSuccess();
+      return true;
+    }
+    if (onSuccess) {
+      pendingAuthCallback.current = onSuccess;
+    }
+    setIsStudentModalOpen(true);
+    return false;
+  };
+
+  // When user logs in, execute any pending action
+  useEffect(() => {
+    if (currentUser && pendingAuthCallback.current) {
+      const fn = pendingAuthCallback.current;
+      pendingAuthCallback.current = null;
+      fn();
+    }
+  }, [currentUser]);
+
+  // Load from LocalStorage on mount & sync with API
   useEffect(() => {
     try {
       const savedProducts = localStorage.getItem('smkn11_products');
@@ -56,6 +138,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsHydrated(true);
     }
+
+    // Live sync products from API to ensure exact 7 SMKN 11 products
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.products && data.products.length > 0) {
+          setProducts(data.products);
+          localStorage.setItem('smkn11_products', JSON.stringify(data.products));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Save to LocalStorage whenever state changes
@@ -87,7 +180,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [orders, isHydrated]);
 
   // Cart operations
-  const addToCart = (product: Product, quantity = 1) => {
+  const addToCart = (product: Product, quantity = 1): boolean => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -99,6 +192,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { product, quantity: Math.min(quantity, product.stock) }];
     });
+    return true;
   };
 
   const updateCartQty = (productId: string, quantity: number) => {
@@ -109,7 +203,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setCart((prev) =>
       prev.map((item) => {
         if (item.product.id === productId) {
-          return { ...item, quantity: Math.min(quantity, item.product.stock) };
+          const clamped = Math.min(Math.max(1, quantity), item.product.stock);
+          return { ...item, quantity: clamped };
         }
         return item;
       })
@@ -125,69 +220,65 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Order operations
-  const generateOrderCode = () => {
-    const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `MKT-${dateStr}-${rand}`;
-  };
-
   const createOrder = (orderData: Omit<Order, 'id' | 'orderCode' | 'createdAt'>): Order => {
+    const timestamp = Date.now();
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const orderCode = `MB11-${timestamp.toString().slice(-4)}${randomSuffix}`;
+
     const newOrder: Order = {
       ...orderData,
-      id: 'ord-' + Date.now(),
-      orderCode: generateOrderCode(),
+      id: `ord-${timestamp}`,
+      orderCode,
       createdAt: new Date().toISOString(),
     };
 
     setOrders((prev) => [newOrder, ...prev]);
-    
-    // Decrement stock for ordered products
+
+    // Decrease stock of ordered products
     setProducts((prev) =>
       prev.map((prod) => {
-        const orderedItem = orderData.items.find((i) => i.productId === prod.id);
+        const orderedItem = orderData.items.find((it) => it.productId === prod.id);
         if (orderedItem) {
-          return {
-            ...prod,
-            stock: Math.max(0, prod.stock - orderedItem.quantity),
-          };
+          return { ...prod, stock: Math.max(0, prod.stock - orderedItem.quantity) };
         }
         return prod;
       })
     );
 
+    // Clear cart after successful checkout
     clearCart();
     return newOrder;
   };
 
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+      prev.map((order) => (order.id === orderId ? { ...order, status } : order))
     );
   };
 
   const confirmPayment = (orderId: string) => {
     setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
+      prev.map((order) =>
+        order.id === orderId
           ? {
-              ...o,
+              ...order,
               paymentStatus: 'paid' as PaymentStatus,
-              status: o.status === 'pending' ? 'processing' : o.status,
+              status: order.status === 'pending' ? ('processing' as OrderStatus) : order.status,
             }
-          : o
+          : order
       )
     );
   };
 
   const deleteOrder = (orderId: string) => {
-    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    setOrders((prev) => prev.filter((order) => order.id !== orderId));
   };
 
   const findOrderByCode = (code: string) => {
-    const cleanCode = code.trim().toUpperCase();
     return orders.find(
-      (o) => o.orderCode.toUpperCase() === cleanCode || o.id === code
+      (o) =>
+        o.orderCode.toLowerCase() === code.trim().toLowerCase() ||
+        o.whatsappNumber.replace(/[^0-9]/g, '') === code.replace(/[^0-9]/g, '')
     );
   };
 
@@ -196,31 +287,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const slug = productData.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-
-    const newProd: Product = {
+      .replace(/(^-|-$)+/g, '');
+    const newProduct: Product = {
       ...productData,
-      id: 'prod-' + Date.now(),
-      slug: slug + '-' + Math.random().toString(36).substring(2, 5),
+      id: `prod-${Date.now()}`,
+      slug,
     };
-
-    setProducts((prev) => [newProd, ...prev]);
-    return newProd;
+    setProducts((prev) => [newProduct, ...prev]);
+    return newProduct;
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
     setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      prev.map((prod) => (prod.id === id ? { ...prod, ...updates } : prod))
     );
   };
 
   const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setProducts((prev) => prev.filter((prod) => prod.id !== id));
   };
 
   const toggleProductActive = (id: string) => {
     setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, isActive: !p.isActive } : p))
+      prev.map((prod) => (prod.id === id ? { ...prod, isActive: !prod.isActive } : prod))
     );
   };
 
@@ -231,8 +320,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setCart([]);
     localStorage.removeItem('smkn11_products');
     localStorage.removeItem('smkn11_categories');
-    localStorage.removeItem('smkn11_cart');
     localStorage.removeItem('smkn11_orders');
+    localStorage.removeItem('smkn11_cart');
   };
 
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -251,6 +340,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         cartCount,
         cartTotal,
         isHydrated,
+        currentUser,
+        refreshUser,
+        isStudentModalOpen,
+        setIsStudentModalOpen,
+        requireStudentAuth,
         addToCart,
         updateCartQty,
         removeFromCart,

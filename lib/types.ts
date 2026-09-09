@@ -42,6 +42,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   orderCode: string;
+  userId?: number | null;
   studentName: string;
   studentClass: string;
   whatsappNumber: string;
@@ -55,5 +56,7 @@ export interface Order {
   totalPrice: number;
   status: OrderStatus;
   createdAt: string;
+  updatedAt?: string;
   items: OrderItem[];
 }
+

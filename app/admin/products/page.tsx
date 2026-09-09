@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useStore, formatRupiah } from '@/lib/store';
 import { Product } from '@/lib/types';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function AdminProductsPage() {
   const { products, categories, addProduct, updateProduct, deleteProduct, toggleProductActive, isHydrated } = useStore();
@@ -76,23 +77,71 @@ export default function AdminProductsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const cat = categories.find((c) => c.id === formData.categoryId);
+    const categoryName = cat ? cat.name : formData.categoryName;
 
     if (editingProduct) {
       updateProduct(editingProduct.id, {
         ...formData,
-        categoryName: cat ? cat.name : formData.categoryName,
+        categoryName,
       });
+
+      // Sync to MySQL API
+      try {
+        await fetch(`/api/products/${editingProduct.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+      } catch (_) {}
     } else {
-      addProduct({
+      const newProd = addProduct({
         ...formData,
-        categoryName: cat ? cat.name : categories[0]?.name || '',
+        categoryName: categoryName || categories[0]?.name || '',
       });
+
+      // Sync to MySQL API
+      try {
+        await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...newProd,
+            ...formData,
+          }),
+        });
+      } catch (_) {}
     }
 
     setIsModalOpen(false);
+  };
+
+  const [deletingProduct, setDeletingProduct] = useState<{ id: string; name: string } | null>(null);
+
+  const confirmDeleteProduct = async () => {
+    if (!deletingProduct) return;
+    deleteProduct(deletingProduct.id);
+    try {
+      await fetch(`/api/products/${deletingProduct.id}`, { method: 'DELETE' });
+    } catch (_) {}
+    setDeletingProduct(null);
+  };
+
+  const handleDeleteProduct = (productId: string, productName: string) => {
+    setDeletingProduct({ id: productId, name: productName });
+  };
+
+  const handleToggleProduct = async (product: Product) => {
+    toggleProductActive(product.id);
+    try {
+      await fetch(`/api/products/${product.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !product.isActive }),
+      });
+    } catch (_) {}
   };
 
   return (
@@ -199,7 +248,7 @@ export default function AdminProductsPage() {
                   </td>
                   <td className="py-3.5 px-4">
                     <button
-                      onClick={() => toggleProductActive(prod.id)}
+                      onClick={() => handleToggleProduct(prod)}
                       className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${
                         prod.isActive
                           ? 'bg-emerald-100 text-emerald-800'
@@ -219,11 +268,7 @@ export default function AdminProductsPage() {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Yakin ingin menghapus produk "${prod.name}"?`)) {
-                          deleteProduct(prod.id);
-                        }
-                      }}
+                      onClick={() => handleDeleteProduct(prod.id, prod.name)}
                       className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                       title="Hapus Produk"
                     >
@@ -348,6 +393,19 @@ export default function AdminProductsPage() {
           </div>
         </div>
       )}
+
+      {/* Modern Delete Product Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deletingProduct)}
+        onClose={() => setDeletingProduct(null)}
+        onConfirm={confirmDeleteProduct}
+        title="Hapus Produk"
+        description={`Apakah Anda yakin ingin menghapus produk "${deletingProduct?.name}" dari katalog? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus Produk"
+        cancelText="Batal"
+        variant="danger"
+        icon="trash"
+      />
     </div>
   );
 }

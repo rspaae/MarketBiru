@@ -59,15 +59,19 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (product.stock <= 0) return;
-    addToCart(product, quantity);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    const success = addToCart(product, quantity);
+    if (success) {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1500);
+    }
   };
 
   const handleBuyNow = () => {
     if (product.stock <= 0) return;
-    addToCart(product, quantity);
-    router.push('/checkout');
+    const success = addToCart(product, quantity);
+    if (success) {
+      router.push('/checkout');
+    }
   };
 
   const handleShare = () => {

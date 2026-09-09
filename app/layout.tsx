@@ -3,6 +3,7 @@ import './globals.css';
 import { StoreProvider } from '@/lib/store';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import StudentLoginModal from '@/components/StudentLoginModal';
 
 export const metadata: Metadata = {
   title: 'Koperasi SMKN 11 Bandung - Toko & Kebutuhan Sekolah Online',
@@ -24,6 +25,7 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
+          <StudentLoginModal />
         </StoreProvider>
       </body>
     </html>

@@ -1,0 +1,37 @@
+export const SMKN11_CLASSES = [
+  // Kelas X
+  'X AKL 1',
+  'X AKL 2',
+  'X AKL 3',
+  'X MPLB 1',
+  'X MPLB 2',
+  'X MPLB 3',
+  'X MPLB 4',
+  'X MPLB 5',
+  'X PM 1',
+  'X PM 2',
+  'X PM 3',
+  'X PPLG 1',
+  'X PPLG 2',
+  'X DKV 1',
+  'X DKV 2',
+  'X TJKT',
+  // Kelas XI
+  'XI AK 1',
+  'XI AK 2',
+  'XI AK 3',
+  'XI MP 1',
+  'XI MP 2',
+  'XI MP 3',
+  'XI MLOG',
+  'XI BR 1',
+  'XI BR 2',
+  'XI BR 3',
+  'XI RPL 1',
+  'XI RPL 2',
+  'XI DKV 1',
+  'XI DKV 2',
+  'XI TKJ',
+] as const;
+
+export type SMKN11Class = (typeof SMKN11_CLASSES)[number];

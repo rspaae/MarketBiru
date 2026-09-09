@@ -13,14 +13,33 @@ export default function LacakPesananPage() {
   const [searched, setSearched] = useState(false);
   const [foundOrder, setFoundOrder] = useState<any>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchCode.trim()) return;
 
     const clean = searchCode.trim().toUpperCase();
-    const result = orders.find((o) => o.orderCode.toUpperCase() === clean);
-    setFoundOrder(result || null);
+    setIsSearching(true);
     setSearched(true);
+
+    try {
+      // 1. Fetch live from MySQL database
+      const res = await fetch(`/api/orders?code=${encodeURIComponent(clean)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.order) {
+          setFoundOrder(data.order);
+          setIsSearching(false);
+          return;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fallback to local store if offline
+    const localResult = orders.find((o) => o.orderCode.toUpperCase() === clean);
+    setFoundOrder(localResult || null);
+    setIsSearching(false);
   };
 
   return (

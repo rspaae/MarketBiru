@@ -29,7 +29,8 @@ Aplikasi Web E-Commerce Koperasi Resmi **SMK Negeri 11 Kota Bandung** berbasis *
    - Rincian belanja, status pesanan real-time, dan tombol print/download nota.
 7. **Lacak Pesanan Mandiri (`/lacak-pesanan`)**:
    - Pencarian nota berdasarkan kode pesanan atau nomor WhatsApp siswa.
-8. **Admin Panel Petugas Koperasi (`/admin/...`)**:
+8. **Admin Panel & Sistem Autentikasi (`/admin/...`)**:
+   - `/admin/login`: Halaman login petugas admin & kasir terproteksi.
    - `/admin/dashboard`: Ringkasan omset & statistik pesanan.
    - `/admin/orders`: Manajemen & perubahan status pesanan.
    - `/admin/products`: Inventaris barang & penambahan stok.
@@ -39,13 +40,28 @@ Aplikasi Web E-Commerce Koperasi Resmi **SMK Negeri 11 Kota Bandung** berbasis *
 
 ---
 
+## 🗄️ Konfigurasi Database MySQL (Laragon)
+
+1. **Jalankan Laragon**: Buka Laragon dan klik **Start All** (MySQL port 3306).
+2. **Import Database**:
+   - Buka **HeidiSQL** / **phpMyAdmin** dari Laragon.
+   - Buka file `database.sql` yang ada di root project ini.
+   - Jalankan query SQL tersebut untuk membuat database `market_biru` beserta tabel dan data awal.
+3. **Akun Login Bawaan (Default)**:
+   - **Admin Utama**: Username `admin` / Password `admin123`
+   - **Petugas Kasir**: Username `kasir` / Password `admin123`
+
+---
+
 ## 🚀 Cara Menjalankan
 
 ### 1. Mode Development:
 ```bash
 npm run dev
 ```
-Akses di browser: `http://localhost:3000` (atau via network `http://0.0.0.0:3000`).
+Akses di browser:
+- Toko Siswa: `http://localhost:3000`
+- Portal Admin: `http://localhost:3000/admin/login`
 
 ### 2. Testing di Handphone via VS Code Ports:
 1. Buka panel **Ports** di VS Code.
@@ -53,8 +69,9 @@ Akses di browser: `http://localhost:3000` (atau via network `http://0.0.0.0:3000
 3. Set **Port Visibility** ke **Public**.
 4. Buka URL HTTPS yang diberikan di browser HP.
 
-### 3. Build & Deploy ke Vercel:
+### 3. Build & Deploy:
 ```bash
 npm run build
 ```
 Siap dideploy langsung ke [Vercel](https://vercel.com) hanya dengan menghubungkan repository GitHub ini.
+

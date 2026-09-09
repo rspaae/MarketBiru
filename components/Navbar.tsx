@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   ShoppingBag, 
   Search, 
@@ -15,14 +15,43 @@ import {
   Home, 
   Layers, 
   Sparkles,
-  QrCode
+  User,
+  GraduationCap,
+  LogOut
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
+import { AuthUser } from '@/lib/auth';
 
 export default function Navbar() {
   const { cartCount, isHydrated } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setCurrentUser(data.user);
+        } else {
+          setCurrentUser(null);
+        }
+      })
+      .catch(() => setCurrentUser(null));
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (_) {}
+    try {
+      localStorage.removeItem('smkn11_current_user');
+    } catch (_) {}
+    setCurrentUser(null);
+    window.location.href = '/';
+  };
 
   const isAdminPage = pathname.startsWith('/admin');
   if (isAdminPage) return null;
@@ -53,7 +82,7 @@ export default function Navbar() {
             </Link>
             <span className="text-blue-500">|</span>
             <Link
-              href="/admin/dashboard"
+              href="/admin/login"
               className="hover:text-amber-200 transition flex items-center gap-1.5 text-amber-400 font-semibold hover:underline"
             >
               <Shield className="w-3.5 h-3.5" />
@@ -128,16 +157,71 @@ export default function Navbar() {
               </Link>
             </nav>
 
-            {/* Right Action: QR Kasir & Cart Button */}
+            {/* Right Action: Student User & Cart */}
             <div className="flex items-center gap-3">
-              <Link
-                href="/admin/scan"
-                className="hidden lg:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition border border-slate-200/60"
-              >
-                <QrCode className="w-4 h-4 text-blue-600" />
-                Scanner Kasir
-              </Link>
+              
+              {/* User / Student / Staff Login Status */}
+              {currentUser ? (
+                currentUser.role === 'admin' || currentUser.role === 'kasir' || currentUser.role === 'petugas' ? (
+                  <div className="hidden lg:flex items-center gap-2 bg-amber-50 border border-amber-200/80 px-3 py-1.5 rounded-2xl">
+                    <div className="w-7 h-7 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                      <Shield className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="text-left text-xs leading-tight">
+                      <div className="font-bold text-slate-900 max-w-[120px] truncate">
+                        {currentUser.name}
+                      </div>
+                      <div className="text-[10px] text-amber-700 font-extrabold uppercase">
+                        {currentUser.role === 'admin' ? '👑 Admin Utama' : currentUser.role === 'kasir' ? '🏷️ Kasir' : '🛡️ Petugas'}
+                      </div>
+                    </div>
+                    <Link
+                      href="/admin/dashboard"
+                      className="text-[10px] bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded-lg font-bold transition ml-1 shrink-0"
+                    >
+                      Dashboard &rarr;
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      title="Keluar Akun"
+                      className="p-1 text-slate-400 hover:text-rose-600 transition"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="hidden lg:flex items-center gap-2 bg-blue-50/80 border border-blue-200/80 px-3 py-1.5 rounded-2xl">
+                    <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                      {currentUser.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="text-left text-xs leading-tight">
+                      <div className="font-bold text-slate-900 max-w-[120px] truncate">
+                        {currentUser.name}
+                      </div>
+                      <div className="text-[10px] text-blue-700 font-semibold">
+                        {currentUser.student_class || 'Siswa SMKN 11'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      title="Keluar Akun"
+                      className="p-1 text-slate-400 hover:text-rose-600 transition ml-1"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )
+              ) : (
+                <Link
+                  href="/masuk"
+                  className="hidden lg:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 rounded-xl transition border border-slate-200/70"
+                >
+                  <GraduationCap className="w-4 h-4 text-blue-600" />
+                  <span>Masuk Siswa</span>
+                </Link>
+              )}
 
+              {/* Cart Button */}
               <Link
                 href="/keranjang"
                 className="relative inline-flex items-center gap-2.5 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-sm shadow-md shadow-blue-500/20 hover:shadow-lg transition active:scale-95"
@@ -169,6 +253,38 @@ export default function Navbar() {
           {/* Mobile dropdown drawer */}
           {mobileMenuOpen && (
             <div className="md:hidden py-4 border-t border-slate-100 space-y-2 text-sm font-medium animate-in fade-in slide-in-from-top-3 duration-200">
+              {currentUser ? (
+                <div className="p-3 bg-blue-50 rounded-2xl border border-blue-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                      {currentUser.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-bold text-slate-900 text-xs">{currentUser.name}</div>
+                      <div className="text-[10px] text-blue-700 font-semibold">
+                        {currentUser.student_class || currentUser.role}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="text-xs font-bold text-rose-600 flex items-center gap-1"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/masuk"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-blue-600 text-white font-bold transition shadow-sm"
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  <span>Masuk / Daftar Akun Siswa</span>
+                </Link>
+              )}
+
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}
@@ -194,20 +310,12 @@ export default function Navbar() {
                 <span>Lacak Status & Cetak Nota</span>
               </Link>
               <Link
-                href="/admin/scan"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-blue-700 font-semibold bg-blue-50 transition"
-              >
-                <QrCode className="w-4 h-4 text-blue-600" />
-                <span>QR Scanner Petugas Kasir</span>
-              </Link>
-              <Link
-                href="/admin/dashboard"
+                href="/admin/login"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-amber-700 font-semibold bg-amber-50 transition"
               >
                 <Shield className="w-4 h-4 text-amber-600" />
-                <span>Dashboard Admin Koperasi</span>
+                <span>Portal Admin & Kasir</span>
               </Link>
             </div>
           )}
@@ -236,13 +344,13 @@ export default function Navbar() {
             <span className="text-[10px]">Katalog</span>
           </Link>
           <Link
-            href="/lacak-pesanan"
+            href="/masuk"
             className={`flex flex-col items-center gap-1 py-1 rounded-xl transition ${
-              pathname === '/lacak-pesanan' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+              pathname === '/masuk' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <Receipt className="w-5 h-5" />
-            <span className="text-[10px]">Nota</span>
+            <User className="w-5 h-5" />
+            <span className="text-[10px]">{currentUser ? 'Akun' : 'Masuk'}</span>
           </Link>
           <Link
             href="/keranjang"

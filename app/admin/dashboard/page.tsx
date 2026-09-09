@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   DollarSign, 
@@ -13,12 +13,53 @@ import {
   Plus, 
   TrendingUp, 
   Truck,
-  Store 
+  Store,
+  Database,
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useStore, formatRupiah } from '@/lib/store';
 
 export default function AdminDashboardPage() {
   const { orders, products, updateOrderStatus, isHydrated } = useStore();
+  const [dbStatus, setDbStatus] = useState<{ connected: boolean; message: string } | null>(null);
+  const [checkingDb, setCheckingDb] = useState(true);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const checkDb = () => {
+    setCheckingDb(true);
+    fetch('/api/db/test')
+      .then((res) => res.json())
+      .then((data) => setDbStatus(data))
+      .catch(() => setDbStatus({ connected: false, message: 'MySQL belum aktif.' }))
+      .finally(() => setCheckingDb(false));
+  };
+
+  useEffect(() => {
+    checkDb();
+  }, []);
+
+  const handleSyncDb = async () => {
+    setSyncLoading(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch('/api/db/init', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSyncMsg({ text: data.message, type: 'success' });
+        setDbStatus({ connected: true, message: 'Database aktif dan tersinkronisasi!' });
+      } else {
+        setSyncMsg({ text: data.message || 'Gagal sinkronisasi.', type: 'error' });
+      }
+    } catch {
+      setSyncMsg({ text: 'Gagal terhubung ke server MySQL Laragon.', type: 'error' });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   if (!isHydrated) {
     return <div className="p-8 text-center text-slate-400">Memuat data dashboard...</div>;
@@ -58,10 +99,87 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Database MySQL Laragon Status Widget */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+            checkingDb
+              ? 'bg-slate-100 text-slate-500'
+              : dbStatus?.connected
+                ? 'bg-emerald-50 text-emerald-600'
+                : 'bg-amber-50 text-amber-600'
+          }`}>
+            <Database className={`w-5 h-5 ${checkingDb ? 'animate-spin' : ''}`} />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
+              <span>Status Database MySQL Laragon:</span>
+              {checkingDb ? (
+                <span className="text-slate-400">Mengecek...</span>
+              ) : dbStatus?.connected ? (
+                <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-extrabold text-[11px] border border-emerald-200">
+                  ● Terhubung (market_biru)
+                </span>
+              ) : (
+                <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-extrabold text-[11px] border border-amber-200">
+                  ● Belum Terhubung / Perlu Setup
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Host: 127.0.0.1:3306 &bull; DB: market_biru
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={checkDb}
+            disabled={checkingDb}
+            title="Refresh status koneksi"
+            className="p-2 text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${checkingDb ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={handleSyncDb}
+            disabled={syncLoading}
+            className="flex-1 sm:flex-none px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+          >
+            {syncLoading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Memproses...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>⚡ Setup / Sync Database Otomatis</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {syncMsg && (
+        <div className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center gap-2.5 animate-in fade-in ${
+          syncMsg.type === 'success'
+            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+            : 'bg-rose-50 text-rose-800 border border-rose-200'
+        }`}>
+          {syncMsg.type === 'success' ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          )}
+          <span>{syncMsg.text}</span>
+        </div>
+      )}
+
       {/* 4 Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs relative group">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider">Total Omset Selesai</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -71,9 +189,18 @@ export default function AdminDashboardPage() {
           <p className="text-2xl font-black text-slate-900 tracking-tight">
             {formatRupiah(totalRevenue)}
           </p>
-          <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
-            {completedOrders.length} transaksi selesai
-          </span>
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+            <span className="text-[11px] text-emerald-600 font-semibold">
+              {completedOrders.length} transaksi selesai
+            </span>
+            <Link
+              href="/admin/laporan"
+              className="text-[11px] text-blue-600 font-bold hover:underline flex items-center gap-0.5"
+            >
+              <span>Laporan</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">

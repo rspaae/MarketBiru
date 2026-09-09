@@ -21,9 +21,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     if (product.stock <= 0) return;
-    addToCart(product, 1);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1200);
+    const success = addToCart(product, 1);
+    if (success) {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1200);
+    }
   };
 
   return (

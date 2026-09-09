@@ -82,11 +82,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin/scan" className="hover:text-blue-400 transition">
-                  Scanner QR Nota (Kasir)
-                </Link>
-              </li>
-              <li>
                 <Link href="/admin/dashboard" className="hover:text-blue-400 transition">
                   Login Petugas Koperasi
                 </Link>

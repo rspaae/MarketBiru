@@ -2,11 +2,22 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ArrowLeft, GraduationCap, ShieldCheck } from 'lucide-react';
 import { useStore, formatRupiah } from '@/lib/store';
 
 export default function KeranjangPage() {
-  const { cart, updateCartQty, removeFromCart, clearCart, cartTotal, isHydrated } = useStore();
+  const router = useRouter();
+  const { 
+    cart, 
+    updateCartQty, 
+    removeFromCart, 
+    clearCart, 
+    cartTotal, 
+    isHydrated, 
+    currentUser, 
+    requireStudentAuth 
+  } = useStore();
 
   if (!isHydrated) {
     return (
@@ -41,8 +52,14 @@ export default function KeranjangPage() {
     );
   }
 
+  const handleProceedToCheckout = () => {
+    requireStudentAuth(() => {
+      router.push('/checkout');
+    });
+  };
+
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-200">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -54,7 +71,7 @@ export default function KeranjangPage() {
         </div>
         <button
           onClick={clearCart}
-          className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1"
+          className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer"
         >
           <Trash2 className="w-3.5 h-3.5" />
           <span>Kosongkan</span>
@@ -94,7 +111,7 @@ export default function KeranjangPage() {
               <div className="flex items-center border border-slate-200 rounded-lg bg-slate-50 p-0.5">
                 <button
                   onClick={() => updateCartQty(product.id, quantity - 1)}
-                  className="p-1 rounded text-slate-600 hover:bg-white transition"
+                  className="p-1 rounded text-slate-600 hover:bg-white transition cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -104,36 +121,35 @@ export default function KeranjangPage() {
                 <button
                   onClick={() => updateCartQty(product.id, quantity + 1)}
                   disabled={quantity >= product.stock}
-                  className="p-1 rounded text-slate-600 hover:bg-white disabled:opacity-30 transition"
+                  className="p-1 rounded text-slate-600 hover:bg-white transition cursor-pointer disabled:opacity-40"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Subtotal & Delete */}
-              <div className="text-right shrink-0">
-                <span className="text-xs sm:text-sm font-extrabold text-slate-900 block">
+              {/* Subtotal Item */}
+              <div className="text-right min-w-[5rem]">
+                <div className="font-bold text-xs sm:text-sm text-slate-900">
                   {formatRupiah(product.price * quantity)}
-                </span>
+                </div>
                 <button
                   onClick={() => removeFromCart(product.id)}
-                  className="text-[11px] text-rose-500 hover:text-rose-700 mt-1 inline-flex items-center gap-0.5"
+                  className="text-[10px] text-rose-500 hover:underline mt-0.5 cursor-pointer"
                 >
-                  <Trash2 className="w-3 h-3" />
-                  <span>Hapus</span>
+                  Hapus
                 </button>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Right Column: Order Summary */}
-        <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-6 sticky top-24">
-          <h3 className="font-extrabold text-slate-900 text-sm pb-3 border-b border-slate-100 uppercase tracking-wider">
-            Ringkasan Belanja
+        {/* Right Column: Order Summary Box */}
+        <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-4 sticky top-24">
+          <h3 className="font-bold text-slate-900 text-sm pb-3 border-b border-slate-100">
+            Ringkasan Pesanan
           </h3>
 
-          <div className="space-y-3 text-xs">
+          <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between text-slate-600">
               <span>Total Item:</span>
               <strong className="text-slate-900">
@@ -158,19 +174,26 @@ export default function KeranjangPage() {
               </span>
             </div>
 
-            <Link
-              href="/checkout"
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-200 transition active:scale-95"
+            <button
+              onClick={handleProceedToCheckout}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-200 transition active:scale-95 cursor-pointer"
             >
               <span>Lanjut ke Checkout</span>
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </button>
+
+            {!currentUser && (
+              <p className="text-[10px] text-amber-600 text-center mt-2 font-medium flex items-center justify-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>Wajib masuk akun siswa saat checkout</span>
+              </p>
+            )}
 
             <Link
               href="/katalog"
               className="w-full mt-2 py-2.5 px-4 text-center block text-slate-600 hover:text-blue-600 font-semibold text-xs transition"
             >
-              $\leftarrow$ Tambah Barang Lain
+              ← Tambah Barang Lain
             </Link>
           </div>
         </div>
