@@ -52,7 +52,7 @@ export default function AdminLoginPage() {
       .catch(() => {
         setDbStatus({
           connected: false,
-          message: 'Laragon MySQL belum aktif atau database belum siap.',
+          message: 'Supabase Cloud belum terhubung atau skema belum diimport.',
         });
       })
       .finally(() => setCheckingDb(false));
@@ -69,12 +69,12 @@ export default function AdminLoginPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMsg(data.message);
-        setDbStatus({ connected: true, message: 'Database aktif dan terhubung!' });
+        setDbStatus({ connected: true, message: 'Database Supabase aktif dan terhubung!' });
       } else {
-        setErrorMsg(data.message || 'Gagal membuat database.');
+        setErrorMsg(data.message || 'Gagal sinkronisasi database.');
       }
     } catch {
-      setErrorMsg('Gagal terhubung ke MySQL Laragon port 3306.');
+      setErrorMsg('Gagal terhubung ke Supabase Cloud.');
     } finally {
       setInitLoading(false);
     }
@@ -168,21 +168,21 @@ export default function AdminLoginPage() {
               }`} />
               <div className="flex-1">
                 <div className="font-bold flex items-center gap-1.5">
-                  <span>Status MySQL Laragon:</span>
+                  <span>Status Cloud Database Supabase:</span>
                   {checkingDb ? (
                     <span className="text-slate-500">Mengecek...</span>
                   ) : dbStatus?.connected ? (
-                    <span className="text-emerald-700 font-black">Terhubung (Database: market_biru)</span>
+                    <span className="text-emerald-700 font-black">Terhubung (Supabase PostgreSQL)</span>
                   ) : (
                     <span className="text-amber-700 font-bold">Fallback Siap</span>
                   )}
                 </div>
                 <p className="text-[11px] opacity-90 mt-0.5">
                   {checkingDb
-                    ? 'Memeriksa koneksi ke Laragon MySQL port 3306...'
+                    ? 'Memeriksa koneksi ke Supabase Cloud...'
                     : dbStatus?.connected
-                      ? 'Koneksi ke database lokal Laragon berhasil aktif.'
-                      : 'Laragon MySQL belum terhubung / database belum diimport.'}
+                      ? 'Koneksi ke Supabase PostgreSQL cloud database aktif.'
+                      : 'Supabase Cloud belum terhubung atau skema belum diimport.'}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   <button
@@ -194,12 +194,12 @@ export default function AdminLoginPage() {
                     {initLoading ? (
                       <>
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>Menginisialisasi...</span>
+                        <span>Menyinkronkan...</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-3 h-3 text-amber-500" />
-                        <span>⚡ Setup / Buat Database Otomatis</span>
+                        <span>⚡ Sinkronkan Data Awal Supabase</span>
                       </>
                     )}
                   </button>

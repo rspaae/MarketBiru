@@ -90,11 +90,11 @@ function AdminScanContent() {
         } catch (e) {}
       } else {
         setScannedOrder(null);
-        setErrorMessage(`Pesanan dengan kode "${code}" tidak ditemukan dalam database. Pastikan siswa sudah checkout dan database MySQL aktif.`);
+        setErrorMessage(`Pesanan dengan kode "${code}" tidak ditemukan dalam database.`);
       }
     } catch (err) {
       setScannedOrder(null);
-      setErrorMessage('Gagal menghubungi server database. Pastikan MySQL Laragon aktif.');
+      setErrorMessage('Gagal menghubungi server database. Pastikan koneksi Supabase Cloud aktif.');
     } finally {
       setIsLookingUp(false);
     }
@@ -701,7 +701,7 @@ function AdminScanContent() {
             <div className="bg-white rounded-3xl border border-blue-200 p-12 text-center space-y-3">
               <RefreshCw className="w-10 h-10 text-blue-500 mx-auto animate-spin" />
               <p className="text-sm font-bold text-slate-700">Mencari pesanan di database...</p>
-              <p className="text-xs text-slate-400">Menghubungi server MySQL Laragon</p>
+              <p className="text-xs text-slate-400">Menghubungi server Supabase Cloud</p>
             </div>
           ) : (
             <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center space-y-4">

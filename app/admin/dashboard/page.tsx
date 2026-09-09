@@ -55,7 +55,7 @@ export default function AdminDashboardPage() {
         setSyncMsg({ text: data.message || 'Gagal sinkronisasi.', type: 'error' });
       }
     } catch {
-      setSyncMsg({ text: 'Gagal terhubung ke server MySQL Laragon.', type: 'error' });
+      setSyncMsg({ text: 'Gagal terhubung ke server Supabase Cloud.', type: 'error' });
     } finally {
       setSyncLoading(false);
     }
@@ -99,7 +99,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Database MySQL Laragon Status Widget */}
+      {/* Database Supabase Cloud Status Widget */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -113,12 +113,12 @@ export default function AdminDashboardPage() {
           </div>
           <div>
             <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-              <span>Status Database MySQL Laragon:</span>
+              <span>Status Database Supabase Cloud:</span>
               {checkingDb ? (
                 <span className="text-slate-400">Mengecek...</span>
               ) : dbStatus?.connected ? (
                 <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-extrabold text-[11px] border border-emerald-200">
-                  ● Terhubung (market_biru)
+                  ● Terhubung (PostgreSQL Cloud)
                 </span>
               ) : (
                 <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-extrabold text-[11px] border border-amber-200">
@@ -127,7 +127,7 @@ export default function AdminDashboardPage() {
               )}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Host: 127.0.0.1:3306 &bull; DB: market_biru
+              Provider: Supabase Cloud &bull; PostgreSQL
             </p>
           </div>
         </div>

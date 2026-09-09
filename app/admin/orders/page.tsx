@@ -46,7 +46,7 @@ export default function AdminOrdersPage() {
         setDbError(data.error || 'Gagal mengambil data pesanan.');
       }
     } catch (err) {
-      setDbError('Gagal terhubung ke server. Pastikan database MySQL Laragon aktif.');
+      setDbError('Gagal terhubung ke server. Pastikan Supabase Cloud aktif.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -267,7 +267,7 @@ export default function AdminOrdersPage() {
           <div>
             <strong className="font-bold block">Koneksi Database Gagal</strong>
             <p>{dbError}</p>
-            <p className="mt-1 text-rose-600">Pastikan MySQL Laragon sudah aktif dan database <code>market_biru</code> sudah diimport dari <code>database.sql</code>.</p>
+            <p className="mt-1 text-rose-600">Pastikan koneksi Supabase Cloud aktif dan skema <code>supabase-schema.sql</code> sudah dieksekusi.</p>
           </div>
         </div>
       )}
