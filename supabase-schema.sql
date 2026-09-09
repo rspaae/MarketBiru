@@ -78,6 +78,13 @@ CREATE TABLE IF NOT EXISTS order_items (
   subtotal NUMERIC(12,2) NOT NULL
 );
 
+-- Nonaktifkan RLS agar API Next.js dapat membaca & menulis data dengan mudah
+ALTER TABLE IF EXISTS users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS orders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS order_items DISABLE ROW LEVEL SECURITY;
+
 -- ============================================================
 -- SEED: Akun Resmi Petugas & Siswa SMKN 11 Bandung
 -- Password default: admin123
@@ -115,7 +122,7 @@ ON CONFLICT (id) DO UPDATE SET
   whatsapp = EXCLUDED.whatsapp;
 
 -- Fix sequence setelah bulk insert
-SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1));
 
 -- ============================================================
 -- SEED: Kategori Produk

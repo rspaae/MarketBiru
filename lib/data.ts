@@ -113,3 +113,40 @@ export const INITIAL_PRODUCTS: Product[] = [
 
 export const INITIAL_ORDERS: Order[] = [];
 
+export interface SeedUser {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'petugas' | 'kasir' | 'siswa';
+  nisn?: string | null;
+  studentClass?: string | null;
+  whatsapp?: string | null;
+}
+
+export const INITIAL_USERS: SeedUser[] = [
+  { id: 1, name: 'Administrator Koperasi', username: 'admin', email: 'admin@smkn11bdg.sch.id', password: 'admin123', role: 'admin', whatsapp: '081234567890' },
+  { id: 2, name: 'Petugas Kasir Koperasi 11', username: 'kasir', email: 'kasir@smkn11bdg.sch.id', password: 'admin123', role: 'kasir', whatsapp: '081234567891' },
+  { id: 3, name: 'Aqila Qisya H.', username: 'aqila', email: 'aqila@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061010001', studentClass: 'X AKL 1', whatsapp: '081200000001' },
+  { id: 4, name: 'Alzena Syalwiah', username: 'alzena', email: 'alzena@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061010002', studentClass: 'X AKL 2', whatsapp: '081200000002' },
+  { id: 5, name: 'Zahira Khoirunnisa', username: 'zahira', email: 'zahira@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061010003', studentClass: 'X AKL 3', whatsapp: '081200000003' },
+  { id: 6, name: 'Ahmad Anugrah Mahesa', username: 'anugrah', email: 'anugrah@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061020001', studentClass: 'X MPLB 1', whatsapp: '081200000004' },
+  { id: 7, name: 'Mentari Febriani', username: 'mentari', email: 'mentari@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061020002', studentClass: 'X MPLB 2', whatsapp: '081200000005' },
+  { id: 8, name: 'Nadita Marsyagina', username: 'nadita', email: 'nadita@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061020003', studentClass: 'X MPLB 3', whatsapp: '081200000006' },
+  { id: 9, name: 'Dara Ramadani', username: 'dara', email: 'dara@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061020004', studentClass: 'X MPLB 4', whatsapp: '081200000007' },
+  { id: 10, name: 'Salma Supri Salsabila', username: 'salma', email: 'salma@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061020005', studentClass: 'X MPLB 5', whatsapp: '081200000008' },
+  { id: 11, name: 'Keisya Afifah', username: 'keisya', email: 'keisya@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061030001', studentClass: 'X PM 1', whatsapp: '081200000009' },
+  { id: 12, name: 'Almaira Putri Ramadhany', username: 'almaira', email: 'almaira@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061030002', studentClass: 'X PM 2', whatsapp: '081200000010' },
+  { id: 13, name: 'Selky Aulia Agustin', username: 'selky', email: 'selky@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061030003', studentClass: 'X PM 3', whatsapp: '081200000011' },
+  { id: 14, name: 'Nayra Aulia Khoirunnisa', username: 'nayra', email: 'nayra@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061040001', studentClass: 'X PPLG 1', whatsapp: '081200000012' },
+  { id: 15, name: 'Khansa Khairunnisa', username: 'khansa', email: 'khansa@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061040002', studentClass: 'X PPLG 2', whatsapp: '081200000013' },
+  { id: 16, name: 'Qatrinnada Maswahid', username: 'qatrinnada', email: 'qatrinnada@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061050002', studentClass: 'X DKV 2', whatsapp: '081200000014' },
+  { id: 17, name: 'Muhamad Raisa Prayoga', username: 'raisa', email: 'raisa@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061060001', studentClass: 'X TJKT', whatsapp: '081200000015' },
+  { id: 18, name: 'Syifa Cinta Aulia', username: 'syifa', email: 'syifa@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061110001', studentClass: 'XI AK 1', whatsapp: '081200000016' },
+  { id: 19, name: 'Anggita Dwi Putri', username: 'anggita', email: 'anggita@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061110002', studentClass: 'XI AK 2', whatsapp: '081200000017' },
+  { id: 20, name: 'Nurul Aulia Akhwati', username: 'nurul', email: 'nurul@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061110003', studentClass: 'XI AK 3', whatsapp: '081200000018' },
+  { id: 21, name: 'Zya Agnia Khoirunnisa', username: 'zya', email: 'zya@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061120001', studentClass: 'XI MP 1', whatsapp: '081200000019' },
+  { id: 22, name: 'Melisa', username: 'melisa', email: 'melisa@siswa.smkn11bdg.sch.id', password: 'admin123', role: 'siswa', nisn: '0061120002', studentClass: 'XI MP 2', whatsapp: '081200000020' },
+];
+
